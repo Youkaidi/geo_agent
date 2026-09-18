@@ -1,0 +1,22 @@
+{
+  "name": "geo-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A geological modeling research assistant powered by Pi-Agent.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "pi": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-pi.ps1",
+    "geo": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1",
+    "acceptance:first": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --acceptance",
+    "test": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --test",
+    "queue:worker": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --worker"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.83.0",
+    "typebox": "1.3.7",
+    "undici": "8.5.0"
+  }
+}

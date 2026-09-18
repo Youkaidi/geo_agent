@@ -42,3 +42,14 @@ models/
 outputs/
 *.log
 
+
+# Node.js
+node_modules/
+.pnpm-store/
+
+# Pi local runtime data
+.pi/sessions/
+
+# Geo-Agent local configuration and experiment artifacts
+.geo-agent/
+.geo-agent.local.json

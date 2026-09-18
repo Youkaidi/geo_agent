@@ -1,0 +1,6 @@
+{
+  "trainingProject": "D:\\path\\to\\seismic_facies_segforment",
+  "pythonCommand": "D:\\path\\to\\python.exe",
+  "dataRoot": "D:\\path\\to\\seismic_facies_segforment\\data\\f3_model",
+  "proxyUrl": "http://127.0.0.1:7897"
+}
