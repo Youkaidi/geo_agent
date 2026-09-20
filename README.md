@@ -57,6 +57,10 @@ npm test
 
 ## 异步任务队列
 
+> 当前实现仍为 SQLite + 本地 Worker。面向多机多 CPU 的目标方案已完成设计，尚未写入运行代码，详见 [MySQL + RabbitMQ 多机任务系统设计](docs/architecture/mysql-rabbitmq-task-queue.md)。
+
+异步任务功能的业务流程、断点续跑、重试、通知和技术选型说明见 [Geo-Agent 异步实验任务系统说明](docs/async-task-system.md)。
+
 训练提交后会立即返回 `taskId`，任务持久化在 `.geo-agent/queue.sqlite`。单 GPU Worker 串行消费任务，状态包括：
 
 ```text

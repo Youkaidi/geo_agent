@@ -12,10 +12,15 @@
     "geo": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1",
     "acceptance:first": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --acceptance",
     "test": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --test",
-    "queue:worker": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --worker"
+    "queue:worker": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --worker",
+    "sandbox:build": "docker build -f docker/geo-training.Dockerfile -t geo-agent-training:local .",
+    "cache:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --cache-status",
+    "cache:warmup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-geo-agent.ps1 --cache-warmup"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.83.0",
+    "@huggingface/transformers": "4.3.0",
+    "redis": "6.2.1",
     "typebox": "1.3.7",
     "undici": "8.5.0"
   }

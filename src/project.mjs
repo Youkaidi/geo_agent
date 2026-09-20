@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { inspectSandbox } from "./sandbox.mjs";
 
 export const REQUIRED_DATA_FILES = [
   "train_seismic.npy",
@@ -109,13 +110,15 @@ export function preflight(config, dataRoot) {
   const python = inspectPython(config);
   const gpu = inspectGpu();
   const data = inspectDataset(config, dataRoot);
+  const sandbox = inspectSandbox(config);
   const reasons = [];
   if (!project.valid) reasons.push("训练项目结构不完整");
   if (!data.ok) reasons.push("F3 数据不完整或格式不合法");
   if (!python.ok) reasons.push("Python 环境缺少 NumPy/PyTorch");
   else if (!python.cuda_available) reasons.push("PyTorch 未检测到可用 CUDA");
   if (!gpu.ok) reasons.push("未检测到 NVIDIA GPU");
-  return { ready: reasons.length === 0, reasons, project, python, gpu, data };
+  if (!sandbox.ready) reasons.push(`沙箱不可用：${sandbox.error}`);
+  return { ready: reasons.length === 0, reasons, project, python, gpu, data, sandbox };
 }
 
 export function buildTrainingCommand(experiment) {

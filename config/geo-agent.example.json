@@ -2,5 +2,31 @@
   "trainingProject": "D:\\path\\to\\seismic_facies_segforment",
   "pythonCommand": "D:\\path\\to\\python.exe",
   "dataRoot": "D:\\path\\to\\seismic_facies_segforment\\data\\f3_model",
-  "proxyUrl": "http://127.0.0.1:7897"
+  "proxyUrl": "http://127.0.0.1:7897",
+  "sandbox": {
+    "mode": "process",
+    "image": "geo-agent-training:local",
+    "network": "none",
+    "timeoutSeconds": 3600,
+    "cpus": 4,
+    "memory": "12g",
+    "pidsLimit": 256,
+    "gpu": "0",
+    "user": "10001:10001"
+  },
+  "semanticCache": {
+    "mode": "shadow",
+    "redisUrl": "redis://127.0.0.1:6379",
+    "connectTimeoutMs": 1000,
+    "operationTimeoutMs": 3000,
+    "ttlSeconds": 604800,
+    "distanceThreshold": 0.08,
+    "embeddingModel": "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
+    "dimension": 384,
+    "tenantId": "local-user",
+    "projectId": "seismic-facies",
+    "locale": "zh-CN",
+    "knowledgeVersion": "v1",
+    "agentVersion": "geo-agent-v1"
+  }
 }

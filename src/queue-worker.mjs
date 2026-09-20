@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { loadConfig } from "./config.mjs";
 import { buildTrainingCommand, preflight, readExperimentSummary } from "./project.mjs";
 import { loadExperiment, saveStatus } from "./run-store.mjs";
+import { createSandboxExecution, terminateSandboxExecution } from "./sandbox.mjs";
 import {
   acquireWorkerLease,
   addCheckpoint,
@@ -33,20 +34,14 @@ function retryableFailure(message) {
   return /timeout|timed out|connection|temporar|busy|reset|unavailable|worker|exit code/i.test(message);
 }
 
-function runChild(command, logPath, task, heartbeat, shouldResume) {
+function runChild(execution, logPath, task, heartbeat) {
   return new Promise((resolve, reject) => {
     const logFd = openSync(logPath, "a");
     writeSync(logFd, `\n=== task ${task.taskId} attempt ${task.attempts}/${task.maxAttempts} ${new Date().toISOString()} ===\n`);
-    const args = [...command.args];
-    if (shouldResume && !args.includes("--resume")) args.push("--resume");
-    const child = spawn(command.command, args, {
-      cwd: command.cwd,
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: "1",
-        PYTHONUTF8: "1",
-        PYTHONIOENCODING: "utf-8",
-      },
+    writeSync(logFd, `sandbox=${JSON.stringify(execution.description)}\n`);
+    const child = spawn(execution.command, execution.args, {
+      cwd: execution.cwd,
+      env: execution.env,
       stdio: ["ignore", logFd, logFd],
       windowsHide: true,
       shell: false,
@@ -54,15 +49,24 @@ function runChild(command, logPath, task, heartbeat, shouldResume) {
     closeSync(logFd);
     heartbeat(child.pid);
     let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      terminateSandboxExecution(child, execution.cleanup);
+      reject(new Error(`sandbox timeout after ${Math.round(execution.timeoutMs / 1000)} seconds`));
+    }, execution.timeoutMs);
+    timeout.unref();
     child.once("error", (error) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timeout);
       reject(error);
     });
     child.once("exit", (code, signal) => {
       if (settled) return;
       settled = true;
-      if (code === 0) resolve({ code, signal, pid: child.pid });
+      clearTimeout(timeout);
+      if (code === 0) resolve({ code, signal, pid: child.pid, sandbox: execution.description });
       else reject(new Error(`training exited with code ${code}${signal ? ` signal ${signal}` : ""}`));
     });
   });
@@ -71,6 +75,7 @@ function runChild(command, logPath, task, heartbeat, shouldResume) {
 async function executeTask(task) {
   const experiment = loadExperiment(config, task.experimentId);
   const logPath = join(experiment.runDirectory, "training.log");
+  let activeSandbox = null;
   const heartbeat = (trainingPid) => {
     heartbeatTask(config, task.taskId, owner);
     renewWorkerLease(config, owner);
@@ -83,6 +88,7 @@ async function executeTask(task) {
       trainingPid,
       heartbeatAt: new Date().toISOString(),
       logPath,
+      sandbox: activeSandbox,
     });
   };
   const timer = setInterval(() => heartbeat(undefined), 10_000);
@@ -101,12 +107,22 @@ async function executeTask(task) {
     const shouldResume =
       task.attempts > 1 &&
       existsSync(join(experiment.outputDirectory, experiment.variant, "last.pt"));
+    const trainingCommand = {
+      ...command,
+      args: shouldResume && !command.args.includes("--resume")
+        ? [...command.args, "--resume"]
+        : [...command.args],
+    };
+    const execution = createSandboxExecution(config, experiment, trainingCommand, task.taskId);
+    activeSandbox = execution.description;
+    addCheckpoint(config, task.taskId, "sandbox", "prepared", task.attempts, execution.description);
     addCheckpoint(config, task.taskId, "training", "started", task.attempts, {
       epochs: experiment.epochs,
       variant: experiment.variant,
       resume: shouldResume,
+      sandbox: execution.description,
     });
-    const outcome = await runChild(command, logPath, task, heartbeat, shouldResume);
+    const outcome = await runChild(execution, logPath, task, heartbeat);
     addCheckpoint(config, task.taskId, "training", "completed", task.attempts, outcome);
 
     addCheckpoint(config, task.taskId, "summary", "started", task.attempts);

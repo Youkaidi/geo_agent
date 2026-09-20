@@ -6,6 +6,7 @@ import { loadConfig } from "./config.mjs";
 import { createSyntheticF3Dataset } from "./npy.mjs";
 import { buildTrainingCommand, inspectProject, preflight, readExperimentSummary, readProgress } from "./project.mjs";
 import { createRunId, ensureRuntime, loadExperiment, loadStatus, runDirectory, saveExperiment, saveStatus } from "./run-store.mjs";
+import { sandboxDescription } from "./sandbox.mjs";
 import {
   enqueueExperimentTask,
   getTask,
@@ -52,7 +53,7 @@ function taskStateForLegacy(state) {
 export function inspectTrainingProject() {
   const config = loadConfig();
   ensureRuntime(config);
-  return { ...inspectProject(config), configuredDataRoot: config.dataRoot, pythonCommand: config.pythonCommand };
+  return { ...inspectProject(config), configuredDataRoot: config.dataRoot, pythonCommand: config.pythonCommand, sandbox: sandboxDescription(config) };
 }
 
 export function prepareExperiment(options = {}) {
@@ -88,6 +89,7 @@ export function prepareExperiment(options = {}) {
     maxValidationSections: integer(options.maxValidationSections, mode === "synthetic" ? 1 : 8, 1, 128),
     maxTestSections: integer(options.maxTestSections, mode === "synthetic" ? 2 : 16, 1, 256),
     device: "cuda:0",
+    sandbox: sandboxDescription(config),
     createdAt: new Date().toISOString(),
   };
   experiment.preflight = preflight(config, dataRoot);
